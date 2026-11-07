@@ -1,0 +1,21 @@
+# rapttor/yii2-postar
+
+Symfony Mailer transport for the live Postar API (POST https://api.postar.vip/v1/send, Bearer pk_ key; guide https://postar.vip/llm.txt) for yiisoft/yii2-symfonymailer. Namespace rapttor\postar\. Plain curl, no SDK.
+
+Use: 'transport' => \rapttor\postar\Mail::transport($dsn) in the yii\symfonymailer\Mailer config.
+$dsn: smtp://... (any Symfony DSN, passed through) | postar://<pk_ key>@api.postar.vip[?reply_to=office@app.com] | postar+http://<key>@localhost:<port>.
+Classes: Mail (DSN -> transport or array config), PostarTransport (AbstractTransport), SendApi (curl client, injectable http callable for tests), PostarApiException (->isSuppressed()).
+Rules: one API call per recipient; Postar adds the unsubscribe link (footer + List-Unsubscribe) to every mail itself: the plugin never sends an unsubscribe field or link;
+a suppressed recipient (HTTP 422 bounce/complaint/unsubscribe) is skipped, logged and exposed via PostarTransport::$suppressed / $onSuppressed (never an exception, never retry);
+other API errors -> TransportException; attachments throw. The From domain must be allowed for the key (@postar.vip needs no DNS). postar.vip addresses cannot receive replies: set reply_to.
+
+Component: 'postar' => ['class' => \rapttor\postar\Postar::class]; env POSTAR_BASE_URL, POSTAR_API_KEY, POSTAR_FROM, POSTAR_FROM_NAME, POSTAR_REPLY_TO.
+Yii::$app->postar->send($to, $subject, $html, ['text'=>..]) -> ['id','status']; unsubscribe($email) / isUnsubscribed($email) / unsubscribeStatus($email) / resubscribe($email) map to /v1/unsubscribes.
+PostarApiException: errorCode() (recipient_unsubscribed|recipient_suppressed), resubscribeUrl(), isSuppressed(). Postar adds the unsubscribe link itself: never add your own.
+Postar::$defaultMailer => true registers Postar (PostarTransport) as Yii::$app->mailer via the package Bootstrap; replaces an existing mailer definition.
+
+Queue: Postar::$queue=true (with defaultMailer) stores mails in table rapttor_emailqueue (run `php yii migrate`; Bootstrap registers rapttor\postar\migrations). Cron: `php yii postar/run` every minute (`php yii postar/cron --install` adds it). Other commands: postar/stats, postar/retry-failed, postar/purge [days]. Or Yii::$app->postar->queue()->enqueue([to, from, subject, html, text, name, reply_to]).
+Worker rules: 429 pauses the run, 5xx/network retried with backoff (maxAttempts), blocked recipient -> status suppressed (never retried), other 4xx -> failed.
+LOCAL ENVS: auto mode does NOT replace the mailer when YII_ENV is dev or test (Mailpit keeps working). Override: 'enabled' => true|false, POSTAR_ENABLED=1|0, 'localEnvs' => [...]. Never force-enable Postar in a dev config that should keep using Mailpit.
+
+Sender is optional everywhere: from/fromName/replyTo config or POSTAR_FROM/POSTAR_FROM_NAME/POSTAR_REPLY_TO; else from = <slug of Yii::$app->name>@postar.vip and name = Yii::$app->name. Per mail: send(..., ['from','name','reply_to']), queue()->enqueue([... optional from,name,reply_to]). Set replyTo: postar.vip addresses cannot receive replies.

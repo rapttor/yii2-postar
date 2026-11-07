@@ -1,0 +1,60 @@
+{
+    "name": "rapttor/yii2-postar",
+    "description": "Symfony Mailer transport for the Postar mail API (POST /v1/send) for yiisoft/yii2-symfonymailer: configure mail sending with one DSN.",
+    "type": "yii2-extension",
+    "keywords": [
+        "yii2",
+        "yii2-extension",
+        "mailer",
+        "postar",
+        "email",
+        "transport",
+        "symfony-mailer"
+    ],
+    "homepage": "https://github.com/rapttor/yii2-postar",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Rapttor",
+            "homepage": "https://rapttor.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "symfony/mailer": ">=6.4",
+        "yiisoft/yii2": "~2.0.54",
+        "yiisoft/yii2-symfonymailer": "^2.0 || ^3.0 || ^4.0",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "rapttor\\postar\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "rapttor\\postar\\tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit -c phpunit.xml"
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true
+        }
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ],
+    "extra": {
+        "bootstrap": "rapttor\\postar\\Bootstrap"
+    }
+}
