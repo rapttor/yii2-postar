@@ -19,9 +19,14 @@
             "homepage": "https://rapttor.com"
         }
     ],
+    "support": {
+        "issues": "https://github.com/rapttor/yii2-postar/issues",
+        "source": "https://github.com/rapttor/yii2-postar",
+        "docs": "https://postar.vip/llm.txt"
+    },
     "require": {
         "php": ">=8.2",
-        "symfony/mailer": ">=6.4",
+        "symfony/mailer": "^6.4 || ^7.0 || ^8.0",
         "yiisoft/yii2": "~2.0.54",
         "yiisoft/yii2-symfonymailer": "^2.0 || ^3.0 || ^4.0",
         "ext-curl": "*",
@@ -48,13 +53,14 @@
             "yiisoft/yii2-composer": true
         }
     },
+    "extra": {
+        "bootstrap": "rapttor\\postar\\Bootstrap"
+    },
     "repositories": [
         {
             "type": "composer",
             "url": "https://asset-packagist.org"
         }
     ],
-    "extra": {
-        "bootstrap": "rapttor\\postar\\Bootstrap"
-    }
+    "minimum-stability": "stable"
 }

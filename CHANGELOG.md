@@ -4,11 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com), versioning: [SemVer](htt
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-07
+
 ### Added
-- `PostarTransport` for the live Postar API (`POST /v1/send`, `pk_` keys): one call per recipient, transactional by default, suppressed recipients (HTTP 422) skipped and logged.
+- `PostarTransport` for the live Postar API (`POST /v1/send`, `pk_` keys): one call per recipient, suppressed recipients (HTTP 422) skipped and logged.
 - `Mail::transport()` / `Mail::fromDsn()`: DSN `postar://pk_...@api.postar.vip[?reply_to=]`, `postar+http://` for localhost.
 - `SendApi` (curl client) and `PostarApiException`; 9 PHPUnit tests with a stubbed HTTP function.
-
 - `Postar` Yii2 component (env based config, `send()`, `unsubscribe()`, `isUnsubscribed()`, `unsubscribeStatus()`, `resubscribe()`).
 - `SendApi` covers `/v1/unsubscribes`; `PostarApiException::errorCode()` / `resubscribeUrl()`; suppression is detected by `code` (`recipient_unsubscribed`, `recipient_suppressed`).
 - Tests bootstrap Yii; `composer.json` uses asset-packagist so `composer install` resolves.
@@ -21,3 +22,6 @@ Format: [Keep a Changelog](https://keepachangelog.com), versioning: [SemVer](htt
 
 ### Removed
 - Draft support for the old `/v1/messages` API and the `postar/postar-php` SDK dependency.
+
+[Unreleased]: https://github.com/rapttor/yii2-postar/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/rapttor/yii2-postar/releases/tag/v0.1.0
