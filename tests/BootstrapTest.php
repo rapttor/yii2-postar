@@ -51,4 +51,41 @@ final class BootstrapTest extends TestCase
 
         $this->assertFalse($app->has('mailer'));
     }
+
+    private function bare(): Application
+    {
+        return new Application(['id' => 't', 'basePath' => __DIR__]);
+    }
+
+    public function testApiKeyInTheEnvironmentIsEnough(): void
+    {
+        putenv('POSTAR_API_KEY=pk_env');
+        try {
+            $app = $this->bare();
+            (new Bootstrap())->bootstrap($app);
+
+            $this->assertInstanceOf(Postar::class, $app->get('postar'));
+            $this->assertTrue($app->has('mailer'), 'no component config, no MAIL_DSN: the key switches Postar on');
+        } finally {
+            putenv('POSTAR_API_KEY');
+        }
+    }
+
+    public function testNoKeyNoPostar(): void
+    {
+        putenv('POSTAR_API_KEY');
+        $app = $this->bare();
+        (new Bootstrap())->bootstrap($app);
+
+        $this->assertFalse($app->has('postar'));
+        $this->assertFalse($app->has('mailer'));
+    }
+
+    public function testDefaultMailerFalseOptsOut(): void
+    {
+        $app = $this->app(false);
+        (new Bootstrap())->bootstrap($app);
+
+        $this->assertFalse($app->has('mailer'));
+    }
 }

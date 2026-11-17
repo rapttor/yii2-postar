@@ -4,6 +4,12 @@ Format: [Keep a Changelog](https://keepachangelog.com), versioning: [SemVer](htt
 
 ## [Unreleased]
 
+### Changed
+- **`POSTAR_API_KEY` alone switches Postar on**: the Bootstrap registers the `postar` component and `Yii::$app->mailer` without any config. `defaultMailer` and `queue` are `null` (auto; `POSTAR_QUEUE=1`), `false` opts out.
+
+### Removed
+- **DSN support**: `Mail::transport()`, `Mail::fromDsn()` and the `postar://` / `postar+http://` DSN. Postar is configured only with the API settings of https://postar.vip/llm.txt, never with `MAIL_DSN`. Replace `Mail::transport(...)` in the mailer config by nothing: delete the `transport` line (and the `mailer` block) and set `POSTAR_API_KEY`.
+
 ## [0.1.0] - 2026-11-07
 
 ### Added

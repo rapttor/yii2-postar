@@ -4,9 +4,9 @@ Yii2 client for the Postar mail API (https://postar.vip/llm.txt): component `Yii
 
 ## Integrating in a host app
 
-1. `composer require rapttor/yii2-postar`; register the `postar` component in web **and** console config (key and sender from `POSTAR_API_KEY`, `POSTAR_FROM`, `POSTAR_FROM_NAME`, `POSTAR_REPLY_TO`).
-2. Production only: `'defaultMailer' => true` (and `'queue' => true`). It replaces `Yii::$app->mailer`. Local apps use Mailpit: the package does not take over the mailer when `YII_ENV` is `dev` or `test` unless `enabled => true` / `POSTAR_ENABLED=1`.
-3. With the queue: `php yii migrate`, then cron `php yii postar/run` every minute (`php yii postar/cron --install`) and `php yii postar/purge` daily.
+1. `composer require rapttor/yii2-postar` and set `POSTAR_API_KEY`, `POSTAR_FROM`, `POSTAR_FROM_NAME`, `POSTAR_REPLY_TO` in `.env`. That is all: with the key present the package registers the `postar` component and replaces `Yii::$app->mailer`. **Never use or document `MAIL_DSN` / a `postar://` DSN for Postar**, never add component or mailer config for it.
+2. Local apps leave the key out (Mailpit). With a key present, `YII_ENV` `dev` or `test` still keeps the local mailer unless `enabled => true` / `POSTAR_ENABLED=1`.
+3. With the queue (`POSTAR_QUEUE=1`): `php yii migrate`, then cron `php yii postar/run` every minute (`php yii postar/cron --install`) and `php yii postar/purge` daily.
 
 ## Rules
 

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace rapttor\postar\tests;
 
 use PHPUnit\Framework\TestCase;
-use rapttor\postar\Mail;
 use rapttor\postar\PostarTransport;
 use rapttor\postar\SendApi;
 use Symfony\Component\Mailer\Exception\TransportException;
@@ -97,20 +96,5 @@ final class PostarTransportTest extends TestCase
     {
         $this->expectException(TransportException::class);
         $this->mailer($this->queued())->send($this->email()->attach('x', 'a.txt', 'text/plain'));
-    }
-
-    public function testDsn(): void
-    {
-        $this->assertSame(['dsn' => 'smtp://mailpit:1025'], Mail::transport('smtp://mailpit:1025'));
-        $this->assertInstanceOf(PostarTransport::class, Mail::transport('postar://pk_abc@api.postar.vip?reply_to=office@app.com'));
-        $this->assertInstanceOf(PostarTransport::class, Mail::transport('postar+http://pk_abc@localhost:8080'));
-        $this->expectException(\InvalidArgumentException::class);
-        Mail::fromDsn('postar://api.postar.vip');
-    }
-
-    public function testPlainHttpOnlyForLocalhost(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        Mail::fromDsn('postar+http://pk_abc@api.postar.vip');
     }
 }

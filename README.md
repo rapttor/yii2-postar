@@ -1,41 +1,29 @@
 # rapttor/yii2-postar
 
-[Symfony Mailer](https://symfony.com/doc/current/mailer.html) transport for **Postar**, the Rapttor transactional mail API ([guide](https://postar.vip/llm.txt), `POST https://api.postar.vip/v1/send`),
-for apps using `yiisoft/yii2-symfonymailer`. One DSN picks the transport: Mailpit in dev, Postar in production, no code changes. Plain curl, no SDK.
+Yii2 client for **Postar**, the Rapttor transactional mail API ([guide](https://postar.vip/llm.txt), `POST https://api.postar.vip/v1/send`). It talks to the API directly (plain curl, no SDK) and plugs into `Yii::$app->mailer`.
 
-## Install
+## Install and configure
 
 ```bash
 composer require rapttor/yii2-postar
 ```
 
-Private for now: add it as a `path` or `vcs` repository (see `rapttor.md` section 5).
+Put the settings from the Postar guide in the app's `.env`; that is all:
 
-## Configure
-
-```php
-// common/config/main.php
-'mailer' => [
-    'class' => \yii\symfonymailer\Mailer::class,
-    'transport' => \rapttor\postar\Mail::transport(getenv('MAIL_DSN') ?: 'smtp://mailpit:1025'),
-],
+```
+POSTAR_API_KEY=pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+POSTAR_FROM=myapp@postar.vip
+POSTAR_FROM_NAME="My App"
+POSTAR_REPLY_TO=office@myapp.com
 ```
 
-| `MAIL_DSN` | Result |
-|---|---|
-| `smtp://mailpit:1025` (or any Symfony DSN) | passed to Symfony Mailer unchanged |
-| `postar://pk_xxx@api.postar.vip` | Postar over https |
-| `postar://pk_xxx@api.postar.vip?reply_to=office@app.com` | default Reply-To (`postar.vip` addresses cannot receive replies) |
-| `postar+http://pk_xxx@localhost:8080` | plain http, localhost only |
+**When `POSTAR_API_KEY` is present, Postar is used**: the package registers the `postar` component and `Yii::$app->mailer` sends through the Postar API. No `MAIL_DSN`, no component or mailer config. Without the key nothing changes (the app keeps its own mailer, e.g. Mailpit locally). There is no DSN support for Postar: it is configured only with the API settings above.
 
 The `from` domain must be allowed for the key: `@postar.vip` works with no DNS setup, your own domain needs the SPF/DKIM records shown in the Postar backoffice.
 
 ## Component (direct sends and unsubscribes)
 
-```php
-// config/web.php and config/console.php
-'components' => ['postar' => ['class' => \rapttor\postar\Postar::class]],
-```
+The component is registered automatically; declare it only to override settings (`'components' => ['postar' => ['class' => \rapttor\postar\Postar::class, 'timeout' => 5]]`).
 
 Sender (all optional): `from` / `POSTAR_FROM`, `fromName` / `POSTAR_FROM_NAME`, `replyTo` / `POSTAR_REPLY_TO`. Without them the sender is `<app name>@postar.vip` (slug of `Yii::$app->name`, works without DNS) with the app name as display name. `@postar.vip` cannot receive replies, so set `replyTo`. Every mail can override them: `send(..., ['from' => ..., 'name' => ..., 'reply_to' => ...])`, `enqueue([... 'from', 'name', 'reply_to'])`, or the From / Reply-To of the mailer message. Other settings come from the environment unless set in the config: `POSTAR_BASE_URL` (default `https://api.postar.vip`), `POSTAR_API_KEY`, `POSTAR_FROM`, `POSTAR_FROM_NAME`, `POSTAR_REPLY_TO`.
 
@@ -54,23 +42,14 @@ Yii::$app->postar->resubscribe($email);     // authenticated action only; 409 = 
 
 Postar adds its own unsubscribe link and `List-Unsubscribe` headers to every mail, even when the app adds one too; there is no need to build another.
 
-### Postar as the default `Yii::$app->mailer`
+### `Yii::$app->mailer`
 
-```php
-'components' => ['postar' => ['class' => \rapttor\postar\Postar::class, 'defaultMailer' => true]],
-```
-
-The package bootstrap then registers `mailer` (`yii\symfonymailer\Mailer`) with the Postar transport and `POSTAR_FROM` / `POSTAR_FROM_NAME` as default sender. `compose()`, views and layouts work unchanged. It **replaces** any existing `mailer` definition, including `useFileTransport`, so enable it per environment (e.g. only in production config).
+With `POSTAR_API_KEY` set, the package registers `mailer` (`yii\symfonymailer\Mailer`) with the Postar transport and `POSTAR_FROM` / `POSTAR_FROM_NAME` as default sender. `compose()`, views and layouts work unchanged. It **replaces** any existing `mailer` definition, including `useFileTransport`. `'defaultMailer' => false` opts out and keeps your own mailer; Postar is then used only through `Yii::$app->postar`.
 
 ### Mail queue and cron (huge volumes)
 
-```php
-// production config, console AND web
-'components' => ['postar' => [
-    'class' => \rapttor\postar\Postar::class,
-    'defaultMailer' => true,   // Yii::$app->mailer now goes through Postar
-    'queue' => true,           // ... and is stored in `rapttor_emailqueue` first, sent by cron
-]],
+```
+POSTAR_QUEUE=1             # in .env; or 'queue' => true on the component
 ```
 
 ```bash
@@ -88,11 +67,11 @@ Cron runs `php yii postar/run` every minute: up to 500 mails or 50 seconds per r
 | `postar/purge [days]` | delete finished rows older than N days (default 30); run it daily |
 
 Retries: a timeout, network error or 5xx is retried with growing delays (up to `maxAttempts`, default 5, then `failed`); **429** (hourly key limit) pauses the run for 10 minutes without using an attempt; a blocked recipient becomes `suppressed` and is never retried; other 4xx fail at once with `last_error`. The table is shared by all Rapttor apps on the database; its name is `queueTable`, the connection `db`.
-Without `defaultMailer`, queue directly: `Yii::$app->postar->queue()->enqueue(['to' => ..., 'from' => ..., 'subject' => ..., 'html' => ...])`.
+Without the mailer takeover, queue directly: `Yii::$app->postar->queue()->enqueue(['to' => ..., 'from' => ..., 'subject' => ..., 'html' => ...])`.
 
 ### Local environments (Mailpit)
 
-By default Postar does **not** take over the mailer when `YII_ENV` is `dev` or `test`, so local apps keep sending to Mailpit (or the file transport) even if the production config is shared. Change it where needed:
+Leave `POSTAR_API_KEY` out of the local `.env` and the app keeps Mailpit. Even with a key present, Postar does **not** take over the mailer when `YII_ENV` is `dev` or `test`, so a shared config or `.env` cannot send local test mail through the real API. Change it where needed:
 
 | Setting | Effect |
 |---|---|

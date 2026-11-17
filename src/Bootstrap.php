@@ -10,7 +10,8 @@ use yii\console\Application as ConsoleApplication;
 use yii\symfonymailer\Mailer;
 
 /**
- * Makes Postar the delivery backend of `Yii::$app->mailer` when the `postar` component has `defaultMailer => true`.
+ * Zero config: when `POSTAR_API_KEY` is in the environment, registers the `postar` component (if the app has none) and makes
+ * Postar the delivery backend of `Yii::$app->mailer`. No `MAIL_DSN`, no mailer config. `defaultMailer => false` opts out.
  * `compose()`, views and layouts keep working; only the transport changes. Replaces any existing `mailer` definition
  * (including `useFileTransport`), so enable it only where mail should really go out.
  */
@@ -20,7 +21,10 @@ final class Bootstrap implements BootstrapInterface
     public function bootstrap($app): void
     {
         if (!$app->has('postar')) {
-            return;
+            if (Postar::env('POSTAR_API_KEY') === '') {
+                return;
+            }
+            $app->set('postar', ['class' => Postar::class]);
         }
         $postar = $app->get('postar');
         if (!$postar instanceof Postar) {
@@ -35,12 +39,12 @@ final class Bootstrap implements BootstrapInterface
                 $app->controllerMap['migrate'] = $migrate;
             }
         }
-        if (!$postar->defaultMailer || !$postar->isActive()) {
+        if (!$postar->takesOverMailer() || !$postar->isActive()) {
             return;
         }
         $config = [
             'class' => Mailer::class,
-            'transport' => $postar->queue
+            'transport' => $postar->usesQueue()
                 ? new QueueTransport($postar->queue(), $postar->replyTo)
                 : new PostarTransport($postar->api(), $postar->replyTo),
         ];

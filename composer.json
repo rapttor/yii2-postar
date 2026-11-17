@@ -1,6 +1,6 @@
 {
     "name": "rapttor/yii2-postar",
-    "description": "Symfony Mailer transport for the Postar mail API (POST /v1/send) for yiisoft/yii2-symfonymailer: configure mail sending with one DSN.",
+    "description": "Yii2 client for the Postar mail API (postar.vip): send, unsubscribes, Symfony Mailer transport and mail queue with cron worker. Switches on with POSTAR_API_KEY.",
     "type": "yii2-extension",
     "keywords": [
         "yii2",

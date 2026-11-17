@@ -31,8 +31,11 @@ class Postar extends Component
     public ?string $replyTo = null;
     public int $timeout = 10;
 
-    /** true = `Yii::$app->mailer` sends through Postar (see {@see Bootstrap}) */
-    public bool $defaultMailer = false;
+    /**
+     * Whether `Yii::$app->mailer` sends through Postar (see {@see Bootstrap}). null (auto) = yes as soon as an API key is
+     * present (POSTAR_API_KEY): no MAIL_DSN, no mailer config. false = never, true = even without a key in the config.
+     */
+    public ?bool $defaultMailer = null;
 
     /**
      * null (auto) = Postar takes over `Yii::$app->mailer` unless YII_ENV is one of {@see self::$localEnvs}, so local apps keep
@@ -44,8 +47,8 @@ class Postar extends Component
     /** @var list<string> YII_ENV values where auto mode leaves the mailer alone; set `[]` to use Postar everywhere */
     public array $localEnvs = ['dev', 'test'];
 
-    /** true = the mailer stores mails in the queue table; `php yii postar/run` (cron) sends them */
-    public bool $queue = false;
+    /** true = the mailer stores mails in the queue table; `php yii postar/run` (cron) sends them. null = `POSTAR_QUEUE=1` decides, else off. */
+    public ?bool $queue = null;
 
     public string $queueTable = 'rapttor_emailqueue';
 
@@ -59,6 +62,17 @@ class Postar extends Component
 
     private ?SendApi $api = null;
     private ?EmailQueue $emailQueue = null;
+
+    /** Whether the mailer should go through Postar (see {@see self::$defaultMailer}), before the environment check of {@see self::isActive()}. */
+    public function takesOverMailer(): bool
+    {
+        return $this->defaultMailer ?? ($this->apiKey !== '');
+    }
+
+    public function usesQueue(): bool
+    {
+        return $this->queue ?? filter_var(self::env('POSTAR_QUEUE'), FILTER_VALIDATE_BOOLEAN);
+    }
 
     /** Whether Postar may replace the mailer here: see {@see self::$enabled}. */
     public function isActive(): bool
@@ -170,7 +184,7 @@ class Postar extends Component
         ]);
     }
 
-    private static function env(string $name): string
+    public static function env(string $name): string
     {
         $value = $_ENV[$name] ?? getenv($name);
 
