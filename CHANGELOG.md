@@ -4,6 +4,8 @@ Format: [Keep a Changelog](https://keepachangelog.com), versioning: [SemVer](htt
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-17
+
 ### Changed
 - **`POSTAR_API_KEY` alone switches Postar on**: the Bootstrap registers the `postar` component and `Yii::$app->mailer` without any config. `defaultMailer` and `queue` are `null` (auto; `POSTAR_QUEUE=1`), `false` opts out.
 
@@ -32,5 +34,6 @@ Format: [Keep a Changelog](https://keepachangelog.com), versioning: [SemVer](htt
 ### Removed
 - Draft support for the old `/v1/messages` API and the `postar/postar-php` SDK dependency.
 
-[Unreleased]: https://github.com/rapttor/yii2-postar/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/rapttor/yii2-postar/compare/v0.2.0...HEAD
 [0.1.0]: https://github.com/rapttor/yii2-postar/releases/tag/v0.1.0
+[0.2.0]: https://github.com/rapttor/yii2-postar/releases/tag/v0.2.0
