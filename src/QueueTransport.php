@@ -11,11 +11,11 @@ use Symfony\Component\Mime\Email;
 
 /**
  * Stores each mail (one row per recipient) in the {@see EmailQueue} instead of calling the API; `php yii postar/run` sends it.
- * Same message rules as {@see PostarTransport}: no attachments.
+ * Same message rules as {@see PostarTransport}, attachments follow {@see Attachments}.
  */
 final class QueueTransport extends AbstractTransport
 {
-    public function __construct(private readonly EmailQueue $queue, private readonly ?string $replyTo = null)
+    public function __construct(private readonly EmailQueue $queue, private readonly ?string $replyTo = null, private readonly string $attachments = Attachments::SKIP_INLINE)
     {
         parent::__construct();
     }
@@ -31,9 +31,8 @@ final class QueueTransport extends AbstractTransport
         if (!$email instanceof Email) {
             throw new TransportException('Postar queue can only store Symfony\Component\Mime\Email messages.');
         }
-        if ($email->getAttachments() !== []) {
-            throw new TransportException('Postar queue: attachments are not supported.');
-        }
+        Attachments::check($email, $this->attachments);
+        $attachments = $this->attachments === Attachments::SEND ? Attachments::payload($email) : [];
         $html = $email->getHtmlBody();
         $text = $email->getTextBody();
         if (($html === null || $html === '') && ($text === null || $text === '')) {
@@ -51,6 +50,7 @@ final class QueueTransport extends AbstractTransport
                 'subject' => $email->getSubject() ?? '',
                 'html' => $html,
                 'text' => $text,
+                'attachments' => $attachments,
             ]);
         }
     }

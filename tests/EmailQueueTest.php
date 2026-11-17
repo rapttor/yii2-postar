@@ -6,7 +6,9 @@ namespace rapttor\postar\tests;
 
 use PHPUnit\Framework\TestCase;
 use rapttor\postar\EmailQueue;
+use rapttor\postar\Attachments;
 use rapttor\postar\migrations\m261101_000001_create_emailqueue;
+use rapttor\postar\migrations\m261117_000001_add_emailqueue_attachments;
 use rapttor\postar\Postar;
 use rapttor\postar\QueueTransport;
 use rapttor\postar\SendApi;
@@ -31,6 +33,7 @@ final class EmailQueueTest extends TestCase
         $m = new m261101_000001_create_emailqueue(['db' => $this->db, 'compact' => true]);
         $this->app->set('postar', ['class' => Postar::class, 'apiKey' => 'pk_t', 'from' => 'a@postar.vip']);
         $m->up();
+        (new m261117_000001_add_emailqueue_attachments(['db' => $this->db, 'compact' => true]))->up();
         $this->answers = [[202, ['id' => 'm1', 'status' => 'queued']]];
         $this->calls = 0;
     }
@@ -196,6 +199,27 @@ final class EmailQueueTest extends TestCase
         $rows = (new Query())->from('rapttor_emailqueue')->orderBy('id')->all($this->db);
         $this->assertSame(['shop@postar.vip', 'Shop', 'office@shop.com'], [$rows[0]['from_email'], $rows[0]['from_name'], $rows[0]['reply_to']]);
         $this->assertSame(['own@postar.vip', 'Own', 'me@x.org'], [$rows[1]['from_email'], $rows[1]['from_name'], $rows[1]['reply_to']]);
+    }
+
+    public function testAttachmentsTravelThroughTheQueueWhenPolicyIsSend(): void
+    {
+        $sent = [];
+        $api = new SendApi('pk_t', 'https://api.postar.vip', 10, function (string $url, array $h, string $body) use (&$sent): array {
+            $sent[] = json_decode($body, true);
+
+            return [202, '{"id":"m1","status":"queued"}'];
+        });
+        $q = new EmailQueue($this->db, $api);
+        $mail = (new Email())->from('a@postar.vip')->to('u@x.org')->subject('Report')->html('<p><img src="cid:logo"></p>')
+            ->attach('%PDF-1.4', 'report.pdf', 'application/pdf')->embed('PNGDATA', 'logo', 'image/png');
+        (new Mailer(new QueueTransport($q, null, Attachments::SEND)))->send($mail);
+
+        $this->assertSame(1, $q->process()['sent']);
+        $att = $sent[0]['attachments'];
+        $this->assertSame(['report.pdf', 'application/pdf', base64_encode('%PDF-1.4')], [$att[0]['filename'], $att[0]['content_type'], $att[0]['content']]);
+        $this->assertTrue($att[1]['inline']);
+        $this->assertSame('image/png', $att[1]['content_type']);
+        $this->assertNotEmpty($att[1]['cid']);
     }
 
     public function testDevEnvironmentKeepsTheLocalMailer(): void

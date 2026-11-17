@@ -47,6 +47,9 @@ class Postar extends Component
     /** @var list<string> YII_ENV values where auto mode leaves the mailer alone; set `[]` to use Postar everywhere */
     public array $localEnvs = ['dev', 'test'];
 
+    /** What to do with attachments and embedded images: `send`, `skip-inline` (default), `skip`, `throw`; see {@see Attachments}. null = `POSTAR_ATTACHMENTS`. */
+    public ?string $attachments = null;
+
     /** true = the mailer stores mails in the queue table; `php yii postar/run` (cron) sends them. null = `POSTAR_QUEUE=1` decides, else off. */
     public ?bool $queue = null;
 
@@ -67,6 +70,13 @@ class Postar extends Component
     public function takesOverMailer(): bool
     {
         return $this->defaultMailer ?? ($this->apiKey !== '');
+    }
+
+    public function attachmentPolicy(): string
+    {
+        $policy = $this->attachments ?? self::env('POSTAR_ATTACHMENTS');
+
+        return in_array($policy, [Attachments::SEND, Attachments::SKIP, Attachments::THROW], true) ? $policy : Attachments::SKIP_INLINE;
     }
 
     public function usesQueue(): bool

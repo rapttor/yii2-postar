@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace rapttor\postar\tests;
 
 use PHPUnit\Framework\TestCase;
+use rapttor\postar\Attachments;
 use rapttor\postar\PostarTransport;
 use rapttor\postar\SendApi;
 use Symfony\Component\Mailer\Exception\TransportException;
@@ -17,7 +18,7 @@ final class PostarTransportTest extends TestCase
     private array $calls = [];
 
     /** @param callable(array<string,mixed>): array{0:int,1:array<string,mixed>} $reply */
-    private function mailer(callable $reply, ?string $replyTo = null): Mailer
+    private function mailer(callable $reply, ?string $replyTo = null, string $attachments = Attachments::SKIP_INLINE): Mailer
     {
         $http = function (string $url, array $headers, string $body) use ($reply): array {
             $b = json_decode($body, true);
@@ -27,7 +28,7 @@ final class PostarTransportTest extends TestCase
             return [$status, json_encode($json)];
         };
 
-        return new Mailer(new PostarTransport(new SendApi('pk_test', 'https://api.postar.vip', 10, $http), $replyTo));
+        return new Mailer(new PostarTransport(new SendApi('pk_test', 'https://api.postar.vip', 10, $http), $replyTo, $attachments));
     }
 
     private function email(): Email
@@ -92,9 +93,41 @@ final class PostarTransportTest extends TestCase
         $this->mailer(fn () => [422, ['error' => 'subject must not contain line breaks']])->send($this->email());
     }
 
-    public function testAttachmentsAreRefusedNotDropped(): void
+    public function testEmbeddedImageIsDroppedButTheMailGoesOut(): void
+    {
+        $this->mailer($this->queued())->send($this->email()->embed('PNG', 'logo', 'image/png'));
+
+        $this->assertCount(1, $this->calls);
+        $this->assertArrayNotHasKey('attachments', $this->calls[0]['body']);
+    }
+
+    public function testRealAttachmentIsRefusedByDefault(): void
     {
         $this->expectException(TransportException::class);
         $this->mailer($this->queued())->send($this->email()->attach('x', 'a.txt', 'text/plain'));
+    }
+
+    public function testThrowPolicyAlsoRefusesEmbeddedImages(): void
+    {
+        $this->expectException(TransportException::class);
+        $this->mailer($this->queued(), null, Attachments::THROW)->send($this->email()->embed('PNG', 'logo', 'image/png'));
+    }
+
+    public function testSkipPolicyDropsEverything(): void
+    {
+        $this->mailer($this->queued(), null, Attachments::SKIP)->send($this->email()->attach('x', 'a.txt', 'text/plain'));
+
+        $this->assertCount(1, $this->calls);
+        $this->assertArrayNotHasKey('attachments', $this->calls[0]['body']);
+    }
+
+    public function testSendPolicyPutsAttachmentsInThePayload(): void
+    {
+        $this->mailer($this->queued(), null, Attachments::SEND)->send($this->email()->attach('hello', 'a.txt', 'text/plain'));
+
+        $this->assertSame(
+            [['filename' => 'a.txt', 'content_type' => 'text/plain', 'content' => base64_encode('hello')]],
+            $this->calls[0]['body']['attachments'],
+        );
     }
 }

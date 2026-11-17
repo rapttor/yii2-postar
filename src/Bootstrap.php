@@ -45,8 +45,8 @@ final class Bootstrap implements BootstrapInterface
         $config = [
             'class' => Mailer::class,
             'transport' => $postar->usesQueue()
-                ? new QueueTransport($postar->queue(), $postar->replyTo)
-                : new PostarTransport($postar->api(), $postar->replyTo),
+                ? new QueueTransport($postar->queue(), $postar->replyTo, $postar->attachmentPolicy())
+                : new PostarTransport($postar->api(), $postar->replyTo, $postar->attachmentPolicy()),
         ];
         $name = $postar->fromDisplayName();
         $config['messageConfig'] = ['from' => $name ? [$postar->fromAddress() => $name] : $postar->fromAddress()];

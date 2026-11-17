@@ -7,6 +7,9 @@ Format: [Keep a Changelog](https://keepachangelog.com), versioning: [SemVer](htt
 ### Changed
 - **`POSTAR_API_KEY` alone switches Postar on**: the Bootstrap registers the `postar` component and `Yii::$app->mailer` without any config. `defaultMailer` and `queue` are `null` (auto; `POSTAR_QUEUE=1`), `false` opts out.
 
+### Added
+- Attachments and embedded images: policy `POSTAR_ATTACHMENTS` / `Postar::$attachments`: `send` (posts an `attachments` array, needs service support, see docs/ATTACHMENTS.md), `skip-inline` (default: `cid:` images dropped with a warning, real attachments throw), `skip`, `throw`. Queue column `attachments` (migration `m261117_000001_add_emailqueue_attachments`, run `php yii migrate`).
+
 ### Removed
 - **DSN support**: `Mail::transport()`, `Mail::fromDsn()` and the `postar://` / `postar+http://` DSN. Postar is configured only with the API settings of https://postar.vip/llm.txt, never with `MAIL_DSN`. Replace `Mail::transport(...)` in the mailer config by nothing: delete the `transport` line (and the `mailer` block) and set `POSTAR_API_KEY`.
 

@@ -81,13 +81,26 @@ Leave `POSTAR_API_KEY` out of the local `.env` and the app keeps Mailpit. Even w
 
 The config value beats `POSTAR_ENABLED`. Use a test API key and `to: dev@localhost` (captured by Postar, never delivered) for smoke tests. A `queue => true` app in a local env that is enabled needs the cron too, or run `php yii postar/run` by hand.
 
+## Attachments and inline images
+
+The send API documented at https://postar.vip/llm.txt has no attachment field yet (`docs/ATTACHMENTS.md` is the request for the service). Policy via `POSTAR_ATTACHMENTS` (or `'attachments' => ...` on the component):
+
+| value | |
+|---|---|
+| `send` | posts `attachments` (`filename`, `content_type`, `content` base64, `inline`, `cid`): use when the service accepts it |
+| `skip-inline` (default) | `cid:` images are dropped with a logged warning and the mail goes out; real attachments (PDF) throw |
+| `skip` | everything dropped with a warning |
+| `throw` | any attachment or embedded image throws |
+
+Until the service supports it, link images by absolute URL (keep an `alt` text: some clients block remote images).
+
 ## Behaviour
 
 - **One API call per recipient** (`to`, `cc`, `bcc` each separately).
 - **Unsubscribe is Postar's job**: every mail gets Postar's footer link (names this project only) and `List-Unsubscribe` headers, whatever the app sends. The plugin sends no unsubscribe field; mind that your own link and Postar's will both appear.
 - **Suppressed recipients are not errors**: HTTP 422 for a bounced, complained or unsubscribed address is logged and skipped; `PostarTransport::$suppressed` lists them and `$onSuppressed` is called per address. Never retry.
 - **Other API errors** become `Symfony\Component\Mailer\Exception\TransportException` with Postar's message and HTTP status.
-- **Attachments throw** (the API has none); they are never dropped silently.
+- **Attachments** follow the policy above; real files are never dropped silently by default.
 - `to: dev@localhost` is captured by Postar and never sent: handy for a smoke test with a real key.
 
 ## Tests

@@ -31,7 +31,7 @@ final class PostarTransport extends AbstractTransport
      * @param string|null $replyTo default Reply-To when the mail has none: `@postar.vip` addresses cannot receive mail,
      *                             so replies would bounce unless this (or the project's Reply-To in Postar) points to a real mailbox
      */
-    public function __construct(private readonly SendApi $api, private readonly ?string $replyTo = null)
+    public function __construct(private readonly SendApi $api, private readonly ?string $replyTo = null, private readonly string $attachments = Attachments::SKIP_INLINE)
     {
         parent::__construct();
     }
@@ -47,10 +47,8 @@ final class PostarTransport extends AbstractTransport
         if (!$email instanceof Email) {
             throw new TransportException('Postar transport can only send Symfony\Component\Mime\Email messages.');
         }
-        if ($email->getAttachments() !== []) {
-            // the live API has no attachments; fail loudly instead of dropping files
-            throw new TransportException('Postar transport: attachments are not supported.');
-        }
+        Attachments::check($email, $this->attachments);
+        $attachments = $this->attachments === Attachments::SEND ? Attachments::payload($email) : [];
         $html = $email->getHtmlBody();
         $text = $email->getTextBody();
         if (($html === null || $html === '') && ($text === null || $text === '')) {
@@ -70,6 +68,7 @@ final class PostarTransport extends AbstractTransport
                 'html' => $html !== '' ? $html : null,
                 'text' => $text !== '' ? $text : null,
                 'reply_to' => $reply,
+                'attachments' => $attachments !== [] ? $attachments : null,
             ], static fn ($v) => $v !== null);
             try {
                 $res = $this->api->send($payload);

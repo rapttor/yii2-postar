@@ -13,7 +13,7 @@ Yii2 client for the Postar mail API (https://postar.vip/llm.txt): component `Yii
 - Postar adds the unsubscribe link and `List-Unsubscribe` headers itself. Never send an unsubscribe field, never build a second opt-out system. Sync in-app opt-outs with `unsubscribe()` / `resubscribe()`.
 - A blocked recipient (`PostarApiException::isSuppressed()`, 422) is final: never retry it. 429 pauses, 5xx retries with backoff.
 - `@postar.vip` addresses cannot receive replies: always set `replyTo`.
-- No attachments (the API has none): they throw, never drop silently.
+- Attachments: the documented API has no attachment field yet. Policy `POSTAR_ATTACHMENTS` (`send` | `skip-inline` default | `skip` | `throw`); `send` needs the service to accept `attachments` (docs/ATTACHMENTS.md). Use absolute image URLs, not `cid:`, until then.
 - Never write to `rapttor_emailqueue` with raw SQL; use `queue()->enqueue()`.
 
 ## Changing this package

@@ -41,7 +41,7 @@ final class EmailQueue
      * `from`, `name` and `reply_to` are optional: a mail without them gets the defaults of the `postar` component
      * (POSTAR_FROM, POSTAR_FROM_NAME, POSTAR_REPLY_TO, else the app name).
      *
-     * @param array{to:string, subject:string, from?:?string, html?:?string, text?:?string, name?:?string, reply_to?:?string, send_after?:int} $mail
+     * @param array{to:string, subject:string, from?:?string, html?:?string, text?:?string, name?:?string, reply_to?:?string, attachments?:list<array<string,mixed>>, send_after?:int} $mail
      * @return int row id
      */
     public function enqueue(array $mail): int
@@ -61,6 +61,7 @@ final class EmailQueue
             'subject' => $mail['subject'],
             'html' => $mail['html'] ?? null,
             'text' => $mail['text'] ?? null,
+            'attachments' => ($mail['attachments'] ?? []) !== [] ? json_encode($mail['attachments'], JSON_THROW_ON_ERROR) : null,
             'status' => self::PENDING,
             'attempts' => 0,
             'next_attempt_at' => $mail['send_after'] ?? $now,
@@ -105,6 +106,7 @@ final class EmailQueue
                     'html' => $row['html'] ?: null,
                     'text' => $row['text'] ?: null,
                     'reply_to' => $row['reply_to'],
+                    'attachments' => $row['attachments'] ? json_decode($row['attachments'], true) : null,
                 ], static fn ($v) => $v !== null));
                 $this->mark($id, ['status' => self::SENT, 'postar_id' => $res['id'], 'sent_at' => time(), 'attempts' => (int) $row['attempts'] + 1, 'last_error' => null]);
                 $result['sent']++;

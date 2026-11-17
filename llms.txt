@@ -6,7 +6,7 @@ SETUP = environment only: POSTAR_API_KEY (+ POSTAR_FROM, POSTAR_FROM_NAME, POSTA
 Classes: Postar (component), PostarTransport (AbstractTransport, one API call per recipient), SendApi (curl client, injectable http callable for tests), EmailQueue, QueueTransport, PostarApiException (->isSuppressed(), ->resubscribeUrl()).
 Rules: Postar adds the unsubscribe link (footer + List-Unsubscribe) to every mail itself: the plugin never sends an unsubscribe field or link;
 a suppressed recipient (HTTP 422 bounce/complaint/unsubscribe) is skipped, logged and exposed via PostarTransport::$suppressed / $onSuppressed (never an exception, never retry);
-other API errors -> TransportException; attachments throw. The From domain must be allowed for the key (@postar.vip needs no DNS). postar.vip addresses cannot receive replies: set POSTAR_REPLY_TO.
+other API errors -> TransportException. ATTACHMENTS: the Postar API (llm.txt) has no attachment field yet; policy POSTAR_ATTACHMENTS (or Postar::$attachments) = send (posts `attachments`: [{filename, content_type, content(base64), inline?, cid?}], needs the service to accept it, see docs/ATTACHMENTS.md) | skip-inline (default: embedded cid images dropped with a warning, real attachments throw) | skip | throw. Prefer absolute image URLs over cid: logos. The From domain must be allowed for the key (@postar.vip needs no DNS). postar.vip addresses cannot receive replies: set POSTAR_REPLY_TO.
 
 Direct use: Yii::$app->postar->send($to, $subject, $html, ['text'=>..]) (component auto-registered; declare it only to override settings).
 Yii::$app->postar->send($to, $subject, $html, ['text'=>..]) -> ['id','status']; unsubscribe($email) / isUnsubscribed($email) / unsubscribeStatus($email) / resubscribe($email) map to /v1/unsubscribes.
